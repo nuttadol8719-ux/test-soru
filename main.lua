@@ -1,5 +1,6 @@
 --====================================
--- SORU HOLD UI (PC + MOBILE + KEYBIND UI)
+-- SORU HOLD UI (REAL DRAG FIX)
+-- PC + MOBILE (NO BUG)
 -- fruits battleground
 -- by pond
 --====================================
@@ -7,7 +8,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
 local lp = Players.LocalPlayer
 local Replicator = ReplicatedStorage:WaitForChild("Replicator")
@@ -15,8 +15,8 @@ local Replicator = ReplicatedStorage:WaitForChild("Replicator")
 --====================================
 -- CONFIG
 --====================================
-local COOLDOWN = 0.08 -- ปรับความรัวได้
-local KEYBIND = Enum.KeyCode.Q -- ปุ่มเริ่มต้น
+local COOLDOWN = 0.08
+local KEYBIND = Enum.KeyCode.Q
 local WaitingForKey = false
 
 --====================================
@@ -34,37 +34,45 @@ gui.ResetOnSpawn = false
 gui.Parent = lp:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(90, 130)
-frame.Position = UDim2.fromScale(0.5, 0.7)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.BackgroundTransparency = 0.1
+frame.Size = UDim2.fromOffset(120, 160)
+frame.Position = UDim2.fromScale(0.5, 0.6)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.BorderSizePixel = 0
 frame.Parent = gui
-frame.Active = true
-frame.Draggable = true
 
 local corner = Instance.new("UICorner", frame)
 corner.CornerRadius = UDim.new(0, 18)
 
 --====================================
+-- 🔥 DRAG DETECTOR (ลากได้ชัวร์)
+--====================================
+local drag = Instance.new("UIDragDetector")
+drag.Parent = frame
+
+--====================================
 -- SORU BUTTON
 --====================================
 local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, 0, 0.65, 0)
-btn.BackgroundTransparency = 1
+btn.Size = UDim2.new(1, -12, 0, 85)
+btn.Position = UDim2.fromOffset(6,6)
+btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+btn.BorderSizePixel = 0
 btn.Text = "⚡\nSORU"
 btn.TextScaled = true
 btn.Font = Enum.Font.GothamBold
-btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.TextColor3 = Color3.new(1,1,1)
 btn.Parent = frame
+
+local btnCorner = Instance.new("UICorner", btn)
+btnCorner.CornerRadius = UDim.new(0, 14)
 
 --====================================
 -- KEYBIND BUTTON
 --====================================
 local keyBtn = Instance.new("TextButton")
-keyBtn.Size = UDim2.new(1, 0, 0.35, 0)
-keyBtn.Position = UDim2.new(0, 0, 0.65, 0)
-keyBtn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+keyBtn.Size = UDim2.new(1, -12, 0, 45)
+keyBtn.Position = UDim2.fromOffset(6, 100)
+keyBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
 keyBtn.BorderSizePixel = 0
 keyBtn.Text = "KEY : "..KEYBIND.Name
 keyBtn.TextScaled = true
@@ -76,7 +84,7 @@ local keyCorner = Instance.new("UICorner", keyBtn)
 keyCorner.CornerRadius = UDim.new(0, 12)
 
 --====================================
--- HOLD DETECT (BUTTON PC + MOBILE)
+-- HOLD (BUTTON)
 --====================================
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -93,7 +101,7 @@ btn.InputEnded:Connect(function(input)
 end)
 
 --====================================
--- KEYBIND SET UI
+-- KEYBIND SET
 --====================================
 keyBtn.MouseButton1Click:Connect(function()
     WaitingForKey = true
@@ -109,13 +117,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
         WaitingForKey = false
         return
     end
-end)
 
---====================================
--- HOLD DETECT (KEYBOARD)
---====================================
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
     if input.KeyCode == KEYBIND then
         HoldingKey = true
     end
@@ -128,7 +130,7 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 --====================================
--- LOOP SORU
+-- SORU LOOP
 --====================================
 task.spawn(function()
     while true do
