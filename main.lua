@@ -1,5 +1,5 @@
 --====================================
--- MOBILE MINI SORU UI (DRAG BAR + HOLD)
+-- SORU UI + DRAG TAB (REAL)
 -- fruits battleground
 --====================================
 
@@ -11,116 +11,128 @@ local lp = Players.LocalPlayer
 local Rep = RS:WaitForChild("ReplicatorNoYield")
 
 -- STATE
-local holding = false
-local dragging = false
-local dragStart, startPos
+local Holding = false
+local Dragging = false
+local DragStart
+local StartPos
 
--- UI
+--====================
+-- UI ROOT
+--====================
 local gui = Instance.new("ScreenGui")
-gui.Name = "MiniSoruUI"
+gui.Name = "SoruDragUI"
 gui.ResetOnSpawn = false
 gui.Parent = lp:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(120, 52)
-frame.Position = UDim2.fromScale(0.5, 0.75)
-frame.AnchorPoint = Vector2.new(0.5, 0.5)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BackgroundTransparency = 0.1
-frame.BorderSizePixel = 0
-frame.Parent = gui
-frame.Active = true
+local main = Instance.new("Frame")
+main.Size = UDim2.fromOffset(160, 70)
+main.Position = UDim2.fromScale(0.5, 0.8)
+main.AnchorPoint = Vector2.new(0.5, 0.5)
+main.BackgroundColor3 = Color3.fromRGB(30,30,30)
+main.BorderSizePixel = 0
+main.Active = true
+main.Parent = gui
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = frame
+local mainCorner = Instance.new("UICorner", main)
+mainCorner.CornerRadius = UDim.new(0, 12)
 
---==============================
--- DRAG BAR (ตัวนี้แหละที่ลาก)
---==============================
-local dragBar = Instance.new("Frame")
-dragBar.Size = UDim2.new(1, 0, 0, 14)
-dragBar.BackgroundColor3 = Color3.fromRGB(40,40,40)
-dragBar.BorderSizePixel = 0
-dragBar.Parent = frame
+--====================
+-- DRAG TAB (แถบลาก)
+--====================
+local dragTab = Instance.new("Frame")
+dragTab.Size = UDim2.new(1, 0, 0, 22)
+dragTab.BackgroundColor3 = Color3.fromRGB(45,45,45)
+dragTab.BorderSizePixel = 0
+dragTab.Active = true
+dragTab.Parent = main
 
-local dragCorner = Instance.new("UICorner")
-dragCorner.CornerRadius = UDim.new(0, 20)
-dragCorner.Parent = dragBar
+local tabCorner = Instance.new("UICorner", dragTab)
+tabCorner.CornerRadius = UDim.new(0, 12)
 
-local dragText = Instance.new("TextLabel")
-dragText.Size = UDim2.fromScale(1,1)
-dragText.BackgroundTransparency = 1
-dragText.Text = "≡"
-dragText.TextScaled = true
-dragText.Font = Enum.Font.GothamBold
-dragText.TextColor3 = Color3.fromRGB(180,180,180)
-dragText.Parent = dragBar
+local tabText = Instance.new("TextLabel")
+tabText.Size = UDim2.fromScale(1,1)
+tabText.BackgroundTransparency = 1
+tabText.Text = "≡ DRAG"
+tabText.Font = Enum.Font.GothamBold
+tabText.TextScaled = true
+tabText.TextColor3 = Color3.fromRGB(200,200,200)
+tabText.Parent = dragTab
 
---==============================
+--====================
 -- SORU BUTTON
---==============================
+--====================
 local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, 0, 1, -14)
-btn.Position = UDim2.fromOffset(0, 14)
-btn.BackgroundTransparency = 1
-btn.Text = "⚡ SORU"
+btn.Size = UDim2.new(1, -10, 0, 38)
+btn.Position = UDim2.new(0, 5, 0, 27)
+btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+btn.BorderSizePixel = 0
+btn.Text = "⚡ S O R U"
 btn.Font = Enum.Font.GothamBold
 btn.TextScaled = true
 btn.TextColor3 = Color3.fromRGB(255,255,255)
-btn.Parent = frame
+btn.Parent = main
 
---==============================
--- DRAG SYSTEM (MOBILE จริง)
---==============================
-dragBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
+local btnCorner = Instance.new("UICorner", btn)
+btnCorner.CornerRadius = UDim.new(0, 10)
+
+--====================
+-- DRAG SYSTEM
+--====================
+dragTab.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Dragging = true
+        DragStart = input.Position
+        StartPos = main.Position
     end
 end)
 
-dragBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+dragTab.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Dragging = false
     end
 end)
 
 UIS.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.Touch then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
+    if Dragging and (
+        input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseMovement
+    ) then
+        local delta = input.Position - DragStart
+        main.Position = UDim2.new(
+            StartPos.X.Scale,
+            StartPos.X.Offset + delta.X,
+            StartPos.Y.Scale,
+            StartPos.Y.Offset + delta.Y
         )
     end
 end)
 
---==============================
--- HOLD = SORU รัว
---==============================
+--====================
+-- HOLD = SORU (NO COOLDOWN)
+--====================
 btn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        holding = true
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Holding = true
     end
 end)
 
 btn.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        holding = false
+    if input.UserInputType == Enum.UserInputType.Touch
+    or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Holding = false
     end
 end)
 
 task.spawn(function()
     while true do
-        if holding then
+        if Holding then
             pcall(function()
                 Rep:FireServer("Core","Soru",{})
             end)
-            task.wait() -- ไม่มีคูลดาวน์
+            task.wait()
         else
             task.wait()
         end
