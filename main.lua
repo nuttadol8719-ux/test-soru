@@ -34,7 +34,7 @@ gui.ResetOnSpawn = false
 gui.Parent = lp:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(90, 160)
+frame.Size = UDim2.fromOffset(78, 98)
 frame.Position = UDim2.fromScale(0.5, 0.6)
 frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 frame.BorderSizePixel = 0
