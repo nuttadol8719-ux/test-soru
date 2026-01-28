@@ -45,7 +45,7 @@ dragBar.BorderSizePixel = 0
 dragBar.Parent = frame
 
 local dragCorner = Instance.new("UICorner")
-dragCorner.CornerRadius = UDim.new(0, 10)
+dragCorner.CornerRadius = UDim.new(0, 20)
 dragCorner.Parent = dragBar
 
 local dragText = Instance.new("TextLabel")
