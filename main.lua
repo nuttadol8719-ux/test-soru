@@ -1,6 +1,5 @@
 --====================================
--- SORU HOLD UI (REAL DRAG FIX)
--- PC + MOBILE (NO BUG)
+-- SORU HOLD UI (REAL DRAG / PC + MOBILE)
 -- fruits battleground
 -- by pond
 --====================================
@@ -12,18 +11,15 @@ local UserInputService = game:GetService("UserInputService")
 local lp = Players.LocalPlayer
 local Replicator = ReplicatedStorage:WaitForChild("Replicator")
 
---====================================
 -- CONFIG
---====================================
-local COOLDOWN = 0
-local KEYBIND = Enum.KeyCode.Q
-local WaitingForKey = false
+local COOLDOWN = 0.08
 
---====================================
 -- STATE
---====================================
 local Holding = false
-local HoldingKey = false
+local Dragging = false
+local DragInput
+local DragStart
+local StartPos
 
 --====================================
 -- UI
@@ -31,60 +27,73 @@ local HoldingKey = false
 local gui = Instance.new("ScreenGui")
 gui.Name = "SoruHoldUI"
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
 gui.Parent = lp:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromOffset(120, 55)
-frame.Position = UDim2.fromScale(0.5, 0.6)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Size = UDim2.new(0, 130, 0, 45) -- สี่เหลี่ยมผืนผ้า แนวนอน
+frame.Position = UDim2.new(0.5, -65, 0.75, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.BorderSizePixel = 0
 frame.Parent = gui
+frame.Active = true
 
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 18)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = frame
 
---====================================
--- 🔥 DRAG DETECTOR (ลากได้ชัวร์)
---====================================
-local drag = Instance.new("UIDragDetector")
-drag.Parent = frame
-
---====================================
--- SORU BUTTON
---====================================
 local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(1, -12, 0, 85)
-btn.Position = UDim2.fromOffset(6,6)
-btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-btn.BorderSizePixel = 0
-btn.Text = "⚡\nSORU"
-btn.TextScaled = false
+btn.Size = UDim2.new(1, 0, 1, 0)
+btn.BackgroundTransparency = 1
+btn.Text = "⚡  S O R U"
 btn.Font = Enum.Font.GothamBold
-btn.TextColor3 = Color3.new(1,1,1)
+btn.TextSize = 16
+btn.TextColor3 = Color3.fromRGB(255,255,255)
 btn.Parent = frame
 
-local btnCorner = Instance.new("UICorner", btn)
-btnCorner.CornerRadius = UDim.new(0, 14)
+--====================================
+-- DRAG SYSTEM (STABLE METHOD)
+--====================================
+local function update(input)
+    local delta = input.Position - DragStart
+    frame.Position = UDim2.new(
+        StartPos.X.Scale,
+        StartPos.X.Offset + delta.X,
+        StartPos.Y.Scale,
+        StartPos.Y.Offset + delta.Y
+    )
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true
+        DragStart = input.Position
+        StartPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                Dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement
+    or input.UserInputType == Enum.UserInputType.Touch then
+        DragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == DragInput and Dragging then
+        update(input)
+    end
+end)
 
 --====================================
--- KEYBIND BUTTON
---====================================
-local keyBtn = Instance.new("TextButton")
-keyBtn.Size = UDim2.new(1, -12, 0, 45)
-keyBtn.Position = UDim2.fromOffset(6, 100)
-keyBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-keyBtn.BorderSizePixel = 0
-keyBtn.Text = "KEY : "..KEYBIND.Name
-keyBtn.TextScaled = true
-keyBtn.Font = Enum.Font.Gotham
-keyBtn.TextColor3 = Color3.fromRGB(200,200,200)
-keyBtn.Parent = frame
-
-local keyCorner = Instance.new("UICorner", keyBtn)
-keyCorner.CornerRadius = UDim.new(0, 12)
-
---====================================
--- HOLD (BUTTON)
+-- HOLD DETECT
 --====================================
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1
@@ -101,40 +110,11 @@ btn.InputEnded:Connect(function(input)
 end)
 
 --====================================
--- KEYBIND SET
---====================================
-keyBtn.MouseButton1Click:Connect(function()
-    WaitingForKey = true
-    keyBtn.Text = "กดปุ่ม..."
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-
-    if WaitingForKey and input.UserInputType == Enum.UserInputType.Keyboard then
-        KEYBIND = input.KeyCode
-        keyBtn.Text = "KEY : "..KEYBIND.Name
-        WaitingForKey = false
-        return
-    end
-
-    if input.KeyCode == KEYBIND then
-        HoldingKey = true
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.KeyCode == KEYBIND then
-        HoldingKey = false
-    end
-end)
-
---====================================
--- SORU LOOP
+-- LOOP SORU
 --====================================
 task.spawn(function()
     while true do
-        if Holding or HoldingKey then
+        if Holding then
             pcall(function()
                 Replicator:InvokeServer("Core","Soru",{})
             end)
@@ -144,7 +124,3 @@ task.spawn(function()
         end
     end
 end)
-
---====================================
--- END
---====================================
