@@ -1,48 +1,107 @@
 --====================================
--- MOBILE DASH -> SORU (NO COOLDOWN)
+-- MOBILE MINI SORU UI (DRAG + HOLD)
 -- fruits battleground
 --====================================
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
-local Replicator = ReplicatedStorage:WaitForChild("Replicator")
-local RepNoYield = ReplicatedStorage:WaitForChild("ReplicatorNoYield")
+local lp = Players.LocalPlayer
+local Rep = RS:WaitForChild("ReplicatorNoYield")
 
--- ป้องกัน hook ซ้ำ
-if _G.SORU_DASH_HOOK then return end
-_G.SORU_DASH_HOOK = true
+-- STATE
+local holding = false
+local dragging = false
+local dragStart, startPos
 
-local mt = getrawmetatable(game)
-setreadonly(mt,false)
+-- UI
+local gui = Instance.new("ScreenGui")
+gui.Name = "MiniSoruUI"
+gui.ResetOnSpawn = false
+gui.Parent = lp:WaitForChild("PlayerGui")
 
-local old = mt.__namecall
+local frame = Instance.new("Frame")
+frame.Size = UDim2.fromOffset(110, 42) -- เล็ก แนวนอน
+frame.Position = UDim2.fromScale(0.5, 0.75)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.BackgroundTransparency = 0.15
+frame.BorderSizePixel = 0
+frame.Parent = gui
+frame.Active = true
 
-mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = frame
 
-    -- ดักเฉพาะ Remote ของเกม
-    if (self == Replicator or self == RepNoYield)
-    and (method == "FireServer" or method == "InvokeServer")
-    and typeof(args[1]) == "string"
-    and typeof(args[2]) == "string" then
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.fromScale(1,1)
+btn.BackgroundTransparency = 1
+btn.Text = "⚡ SORU"
+btn.Font = Enum.Font.GothamBold
+btn.TextScaled = true
+btn.TextColor3 = Color3.fromRGB(255,255,255)
+btn.Parent = frame
 
-        local category = args[1]
-        local action = args[2]
-
-        -- ถ้าเป็นการกดแดชของเกม
-        if category == "Core" and (action == "Dash" or action == "Soru") then
-            -- ยิง Soru แทนแบบไม่มีคูลดาวน์
-            pcall(function()
-                RepNoYield:FireServer("Core","Soru",{})
-            end)
-
-            -- ❌ ไม่ให้ของเดิมทำงาน
-            return
-        end
+--==============================
+-- DRAG SYSTEM (MOBILE SAFE)
+--==============================
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
     end
-
-    return old(self, ...)
 end)
 
-setreadonly(mt,true)
+frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--==============================
+-- HOLD = SORU SPAM
+--==============================
+btn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        holding = true
+    end
+end)
+
+btn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        holding = false
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if holding then
+            pcall(function()
+                Rep:FireServer("Core","Soru",{})
+            end)
+            task.wait() -- ไม่มีคูลดาวน์
+        else
+            task.wait()
+        end
+    end
+end)
+
+--====================================
+-- END
+--====================================
