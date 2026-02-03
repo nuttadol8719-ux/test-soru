@@ -1265,29 +1265,6 @@ task.spawn(function()
 end)
 
 
--- Toggle ใน UI
-
-pvpTab:CreateToggle({
-
-    Name = "⚡ Soruในคอม (Q)",
-
-    CurrentValue = false,
-
-    Callback = function(v)
-
-        HoldQSoru = v
-
-        if not v then
-
-            HoldingQ = false
-
-        end
-
-    end
-
-})
-
-
 pvpTab:CreateButton({
 
     Name = "AIM ASSIST + FOV (UI ลอย)",
@@ -1295,181 +1272,191 @@ pvpTab:CreateButton({
     Callback = function()
 
 
---====================================
+        local Players = game:GetService("Players")
 
--- AIM ASSIST (LIGHT) | TOGGLE + FOV
-
--- MOBILE + PC
-
---====================================
+        local RunService = game:GetService("RunService")
 
 
-local Players = game:GetService("Players")
+        local lp = Players.LocalPlayer
 
-local RunService = game:GetService("RunService")
-
-local UserInputService = game:GetService("UserInputService")
+        local cam = workspace.CurrentCamera
 
 
-local lp = Players.LocalPlayer
+        -- กันรันซ้ำ
 
-local cam = workspace.CurrentCamera
+        if lp.PlayerGui:FindFirstChild("AimAssistUI") then
 
+            warn("Aim Assist already loaded")
 
--- ปรับค่า
+            return
 
-local AIM_STRENGTH = 0.7
-
-local AIM_RANGE = 300
-
-local FOV_RADIUS = 150
+        end
 
 
-local aimEnabled = false
+        -- ปรับค่า
+
+        local AIM_STRENGTH = 0.7
+
+        local AIM_RANGE = 300
+
+        local FOV_RADIUS = 150
 
 
---================ UI =================
-
-local gui = Instance.new("ScreenGui", lp.PlayerGui)
-
-gui.Name = "AimAssistUI"
-
-gui.ResetOnSpawn = false
+        local aimEnabled = false
 
 
-local btn = Instance.new("TextButton", gui)
+        --================ UI =================
 
-btn.Size = UDim2.fromOffset(110,40)
+        local gui = Instance.new("ScreenGui", lp.PlayerGui)
 
-btn.Position = UDim2.fromScale(0.05,0.6)
+        gui.Name = "AimAssistUI"
 
-btn.Text = "AIM : OFF"
-
-btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-
-btn.TextColor3 = Color3.new(1,1,1)
-
-btn.TextScaled = true
-
-btn.Active = true
-
-btn.Draggable = true
+        gui.ResetOnSpawn = false
 
 
---================ FOV =================
+        local btn = Instance.new("TextButton", gui)
 
-local fovCircle = Drawing.new("Circle")
+        btn.Size = UDim2.fromOffset(110,40)
 
-fovCircle.Visible = false
+        btn.Position = UDim2.fromScale(0.05,0.6)
 
-fovCircle.Color = Color3.fromRGB(0,255,0)
+        btn.Text = "AIM : OFF"
 
-fovCircle.Thickness = 1.5
+        btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
 
-fovCircle.NumSides = 64
+        btn.TextColor3 = Color3.new(1,1,1)
 
-fovCircle.Filled = false
+        btn.TextScaled = true
 
-fovCircle.Radius = FOV_RADIUS
+        btn.Active = true
 
-
-btn.MouseButton1Click:Connect(function()
-
-    aimEnabled = not aimEnabled
-
-    btn.Text = aimEnabled and "AIM : ON" or "AIM : OFF"
-
-    fovCircle.Visible = aimEnabled
-
-end)
+        btn.Draggable = true
 
 
---================ FUNCTION =================
+        --================ FOV (SAFE) =================
 
-local function getClosestEnemy()
+        local fovCircle
 
-    local closest
+        local hasDrawing = pcall(function()
 
-    local shortest = AIM_RANGE
+            fovCircle = Drawing.new("Circle")
+
+        end)
 
 
-    for _,plr in pairs(Players:GetPlayers()) do
+        if hasDrawing then
 
-        if plr ~= lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            fovCircle.Visible = false
 
-            local hrp = plr.Character.HumanoidRootPart
+            fovCircle.Color = Color3.fromRGB(0,255,0)
 
-            local pos, onscreen = cam:WorldToViewportPoint(hrp.Position)
+            fovCircle.Thickness = 1.5
 
-            if onscreen then
+            fovCircle.NumSides = 64
 
-                local dist = (Vector2.new(pos.X,pos.Y) -
+            fovCircle.Filled = false
 
-                    Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+            fovCircle.Radius = FOV_RADIUS
 
-                if dist < shortest then
+        end
 
-                    shortest = dist
 
-                    closest = hrp
+        btn.MouseButton1Click:Connect(function()
+
+            aimEnabled = not aimEnabled
+
+            btn.Text = aimEnabled and "AIM : ON" or "AIM : OFF"
+
+            if hasDrawing then
+
+                fovCircle.Visible = aimEnabled
+
+            end
+
+        end)
+
+
+        --================ FUNCTION =================
+
+        local function getClosestEnemy()
+
+            local closest
+
+            local shortest = AIM_RANGE
+
+
+            for _,plr in ipairs(Players:GetPlayers()) do
+
+                if plr ~= lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+
+                    local hrp = plr.Character.HumanoidRootPart
+
+                    local pos, onscreen = cam:WorldToViewportPoint(hrp.Position)
+
+                    if onscreen then
+
+                        local dist = (Vector2.new(pos.X,pos.Y)
+
+                            - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+
+                        if dist < shortest then
+
+                            shortest = dist
+
+                            closest = hrp
+
+                        end
+
+                    end
 
                 end
 
             end
 
+            return closest
+
         end
 
-    end
 
-    return closest
+        --================ LOOP =================
 
-end
+        RunService.RenderStepped:Connect(function()
 
+            if hasDrawing then
 
---================ LOOP =================
+                fovCircle.Position = Vector2.new(
 
-RunService.RenderStepped:Connect(function()
+                    cam.ViewportSize.X / 2,
 
-    -- อัปเดตตำแหน่ง FOV
+                    cam.ViewportSize.Y / 2
 
-    fovCircle.Position = Vector2.new(
+                )
 
-        cam.ViewportSize.X / 2,
-
-        cam.ViewportSize.Y / 2
-
-    )
+            end
 
 
-    if not aimEnabled then return end
+            if not aimEnabled then return end
 
 
-    local target = getClosestEnemy()
+            local target = getClosestEnemy()
 
-    if target then
+            if target then
 
-        local newCF = CFrame.new(
+                local newCF = CFrame.new(
 
-            cam.CFrame.Position,
+                    cam.CFrame.Position,
 
-            cam.CFrame.Position:Lerp(target.Position, AIM_STRENGTH)
+                    cam.CFrame.Position:Lerp(target.Position, AIM_STRENGTH)
 
-        )
+                )
 
-        cam.CFrame = cam.CFrame:Lerp(newCF, AIM_STRENGTH)
+                cam.CFrame = cam.CFrame:Lerp(newCF, AIM_STRENGTH)
 
-    end
+            end
 
-end)
+        end)
 
 
     end
 
 })
-
-
---====================================
-
--- END
-
---====================================
