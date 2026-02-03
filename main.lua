@@ -1,9 +1,4 @@
 
-if _G.FB_LOADED then
-    warn("Script already loaded")
-    return
-end
-_G.FB_LOADED = true
 
 --====================================
 
