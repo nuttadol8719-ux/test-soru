@@ -14,7 +14,7 @@ local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
 
-    Name = "fruits battleground update1.4(pvp🔥)",
+    Name = "fruits battleground update1.45(aimbot🔥)",
 
      LoadingTitle = "update",
 
@@ -1053,6 +1053,240 @@ pvpTab:CreateToggle({
 })
 
 
+-- ===============================
+
+-- AIM LOCK + UI FOV (DELTA X FIX)
+
+-- ===============================
+
+
+local Players = game:GetService("Players")
+
+local RunService = game:GetService("RunService")
+
+local UIS = game:GetService("UserInputService")
+
+local Camera = workspace.CurrentCamera
+
+
+local lp = Players.LocalPlayer
+
+
+local AIM_ENABLED = false
+
+local AIM_FOV = 100
+
+local AIM_HOLD = false
+
+
+-- ===== GUI =====
+
+local gui = Instance.new("ScreenGui")
+
+gui.Name = "AIM_FOV_GUI"
+
+gui.IgnoreGuiInset = true
+
+gui.ResetOnSpawn = false
+
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+gui.Parent = lp:WaitForChild("PlayerGui")
+
+
+-- ===== วง FOV =====
+
+local circle = Instance.new("Frame")
+
+circle.Parent = gui
+
+circle.AnchorPoint = Vector2.new(0.5,0.5)
+
+circle.BackgroundTransparency = 1
+
+circle.Visible = false
+
+circle.ZIndex = 50
+
+
+local corner = Instance.new("UICorner")
+
+corner.CornerRadius = UDim.new(1,0)
+
+corner.Parent = circle
+
+
+local stroke = Instance.new("UIStroke")
+
+stroke.Parent = circle
+
+stroke.Thickness = 2
+
+stroke.Color = Color3.fromRGB(0,255,0)
+
+stroke.Transparency = 0
+
+
+-- หาเป้าใกล้กลางจอ
+
+local function GetClosestPlayer()
+
+    local closest, dist = nil, AIM_FOV
+
+    local center = Vector2.new(
+
+        Camera.ViewportSize.X/2,
+
+        Camera.ViewportSize.Y/2
+
+    )
+
+
+    for _,plr in ipairs(Players:GetPlayers()) do
+
+        if plr ~= lp then
+
+            local char = plr.Character
+
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+            local hum = char and char:FindFirstChild("Humanoid")
+
+
+            if hrp and hum and hum.Health > 0 then
+
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+
+                if onScreen then
+
+                    local mag = (Vector2.new(pos.X,pos.Y) - center).Magnitude
+
+                    if mag < dist then
+
+                        dist = mag
+
+                        closest = hrp
+
+                    end
+
+                end
+
+            end
+
+        end
+
+    end
+
+    return closest
+
+end
+
+
+-- LOOP
+
+RunService.RenderStepped:Connect(function()
+
+    if not AIM_ENABLED then
+
+        circle.Visible = false
+
+        return
+
+    end
+
+
+    circle.Visible = true
+
+    circle.Size = UDim2.fromOffset(AIM_FOV*2, AIM_FOV*2)
+
+    circle.Position = UDim2.fromOffset(
+
+        Camera.ViewportSize.X/2,
+
+        Camera.ViewportSize.Y/2
+
+    )
+
+
+    if UIS.TouchEnabled or AIM_HOLD then
+
+        local target = GetClosestPlayer()
+
+        if target then
+
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+
+            stroke.Color = Color3.fromRGB(255,0,0) -- ล็อกโดน
+
+        else
+
+            stroke.Color = Color3.fromRGB(0,255,0)
+
+        end
+
+    end
+
+end)
+
+
+-- คลิกขวา (คอม)
+
+UIS.InputBegan:Connect(function(i,gpe)
+
+    if gpe then return end
+
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then
+
+        AIM_HOLD = true
+
+    end
+
+end)
+
+
+UIS.InputEnded:Connect(function(i)
+
+    if i.UserInputType == Enum.UserInputType.MouseButton2 then
+
+        AIM_HOLD = false
+
+    end
+
+end)
+
+
+-- ===== ปุ่มในแท็บ pvp =====
+
+pvpTab:CreateToggle({
+
+    Name = "🎯 ล็อกเป้า (AIM LOCK)",
+
+    Callback = function(v)
+
+        AIM_ENABLED = v
+
+    end
+
+})
+
+
+pvpTab:CreateSlider({
+
+    Name = "📐 ระยะวง FOV",
+
+    Range = {10,600},
+
+    Increment = 10,
+
+    CurrentValue = 100,
+
+    Callback = function(v)
+
+        AIM_FOV = v
+
+    end
+
+})
 
 
 pvpTab:CreateButton({
@@ -1265,198 +1499,31 @@ task.spawn(function()
 end)
 
 
-pvpTab:CreateButton({
+-- Toggle ใน UI
 
-    Name = "AIM ASSIST + FOV (UI ลอย)",
+pvpTab:CreateToggle({
 
-    Callback = function()
+    Name = "⚡ Soruในคอม (Q)",
 
+    CurrentValue = false,
 
-        local Players = game:GetService("Players")
+    Callback = function(v)
 
-        local RunService = game:GetService("RunService")
+        HoldQSoru = v
 
+        if not v then
 
-        local lp = Players.LocalPlayer
-
-        local cam = workspace.CurrentCamera
-
-
-        -- กันรันซ้ำ
-
-        if lp.PlayerGui:FindFirstChild("AimAssistUI") then
-
-            warn("Aim Assist already loaded")
-
-            return
+            HoldingQ = false
 
         end
-
-
-        -- ปรับค่า
-
-        local AIM_STRENGTH = 0.7
-
-        local AIM_RANGE = 300
-
-        local FOV_RADIUS = 150
-
-
-        local aimEnabled = false
-
-
-        --================ UI =================
-
-        local gui = Instance.new("ScreenGui", lp.PlayerGui)
-
-        gui.Name = "AimAssistUI"
-
-        gui.ResetOnSpawn = false
-
-
-        local btn = Instance.new("TextButton", gui)
-
-        btn.Size = UDim2.fromOffset(110,40)
-
-        btn.Position = UDim2.fromScale(0.05,0.6)
-
-        btn.Text = "AIM : OFF"
-
-        btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-
-        btn.TextColor3 = Color3.new(1,1,1)
-
-        btn.TextScaled = true
-
-        btn.Active = true
-
-        btn.Draggable = true
-
-
-        --================ FOV (SAFE) =================
-
-        local fovCircle
-
-        local hasDrawing = pcall(function()
-
-            fovCircle = Drawing.new("Circle")
-
-        end)
-
-
-        if hasDrawing then
-
-            fovCircle.Visible = false
-
-            fovCircle.Color = Color3.fromRGB(0,255,0)
-
-            fovCircle.Thickness = 1.5
-
-            fovCircle.NumSides = 64
-
-            fovCircle.Filled = false
-
-            fovCircle.Radius = FOV_RADIUS
-
-        end
-
-
-        btn.MouseButton1Click:Connect(function()
-
-            aimEnabled = not aimEnabled
-
-            btn.Text = aimEnabled and "AIM : ON" or "AIM : OFF"
-
-            if hasDrawing then
-
-                fovCircle.Visible = aimEnabled
-
-            end
-
-        end)
-
-
-        --================ FUNCTION =================
-
-        local function getClosestEnemy()
-
-            local closest
-
-            local shortest = AIM_RANGE
-
-
-            for _,plr in ipairs(Players:GetPlayers()) do
-
-                if plr ~= lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-
-                    local hrp = plr.Character.HumanoidRootPart
-
-                    local pos, onscreen = cam:WorldToViewportPoint(hrp.Position)
-
-                    if onscreen then
-
-                        local dist = (Vector2.new(pos.X,pos.Y)
-
-                            - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
-
-                        if dist < shortest then
-
-                            shortest = dist
-
-                            closest = hrp
-
-                        end
-
-                    end
-
-                end
-
-            end
-
-            return closest
-
-        end
-
-
-        --================ LOOP =================
-
-        RunService.RenderStepped:Connect(function()
-
-            if hasDrawing then
-
-                fovCircle.Position = Vector2.new(
-
-                    cam.ViewportSize.X / 2,
-
-                    cam.ViewportSize.Y / 2
-
-                )
-
-            end
-
-
-            if not aimEnabled then return end
-
-
-            local target = getClosestEnemy()
-
-            if target then
-
-                local newCF = CFrame.new(
-
-                    cam.CFrame.Position,
-
-                    cam.CFrame.Position:Lerp(target.Position, AIM_STRENGTH)
-
-                )
-
-                cam.CFrame = cam.CFrame:Lerp(newCF, AIM_STRENGTH)
-
-            end
-
-        end)
-
 
     end
 
 })
+
+
+--====================================
+
+-- END
+
+--====================================
